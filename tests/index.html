@@ -1,7 +1,9 @@
 <html>
     <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
         <title>Binddata Jquery Plugin</title>
         <link rel="stylesheet" href="qunit-1.9.0.css" />
+        
 
         <script src="qunit-1.9.0.js"></script>
         <script src="jquery-1.7.2.min.js"></script>
@@ -22,7 +24,7 @@
                     $('[name="a1.a2"]').val('hello there').trigger('change');
                     equal(data.a1.a2, 'hello there', 'expected data.a1.a2 to be changed to "hello there"');
 
-                    $('[value=radio1val1]').trigger('click');
+                    $('[value=radio1val1]').trigger('click').trigger('change');
                     equal(data.prop1, 'radio1val1', 'expected data.prop1 to be changed to "radio1val1"');
 
                     data = {prop1:'radio1val2'};
@@ -33,10 +35,9 @@
                     data = {};
                     $('form').binddata(data);
                     $('[name="a1.a2"]').val('hello there').trigger('change');
-                    $('[value=radio1val1]').trigger('click');
+                    $('[value=radio1val1]').trigger('click').trigger('change');
                     equal(data.a1.a2, 'hello there', 'expected data.a1.a2 to be bound to "hello there"');
                     equal(data.prop1, 'radio1val1', 'expected data.prop1 to be bound to "radio1val1"');
-
                 });
 
                 test('Get/Set field elements', function() {
@@ -71,6 +72,22 @@
 
                     $('[name="a1.a2"]').val('hello there').trigger('change');
                     equal(data.a1.a2, 'changed', 'expected transform to change data.a1.a2 value to "changed"');
+                });
+                
+                test('Methods', function() {
+                    var data = {a1:{a2:'a1.a2'},notYetExistent: 404};
+                    $('form').binddata(data);
+                    equal($('[name="a1.a2"]').val(), 'a1.a2', 'expected value "a1.a2"');
+                    
+                    $('<input />').attr({type:'text', name:'notYetExistent'}).appendTo($('form'));
+                    $('form').binddata('update');
+                    
+                    $('[name="notYetExistent"]').val('505').trigger('change');
+                    equal(data.notYetExistent, '505', 'expected data.notYetExistent to be bound to form');
+                    
+                    $('form').binddata('unbind');
+                    $('[name="a1.a2"]').val('barfoo').trigger('change');
+                    equal(data.a1.a2, 'a1.a2', 'expected data.a1.a2 to be unbound from form');
                 });
             });
         </script>
