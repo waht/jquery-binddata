@@ -43,8 +43,8 @@
     };
 
     var getElementType = function($el) {
-        var type = $el.attr('type');
-        if (type == null) {
+        var type = $el.prop('type');    //in IE this returns select-one
+        if ($el.is("select") || type == null) {
             type = $el[0].tagName.toLowerCase();
         }
         return type;
@@ -66,7 +66,6 @@
         }
         value = applyTransforms('get', value, getTransformsForField(propname, transforms));
         setPropValue(bean, propname, value);
-        console.log(propname + ' changed: '+value);
     };
 
     var getTransformsForField = function(name, transforms) {
@@ -127,6 +126,7 @@
 
     var setFormField = function($form, name, value) {
         var $el = $form.find('[name="'+name+'"]');
+        if ($el.length == 0) return;    //Abort if $el was not found
         var type = getElementType($el);
 
         switch (type) {
@@ -150,18 +150,57 @@
     };
 
     $.fn.binddata = function(bean, properties) {
+        var method;
+        var methodUpdate = false;
+        var methodUnbind = false;
+        
         if (null == bean) {
             return this;
         }
-
+        
+        //Determine method from bean argument
+        if (typeof bean === "string") {
+            method = bean;
+            bean = this.data('bindData.bean');
+            properties = this.data('bindData.properties');
+        }
+        if (method !== undefined) {
+            if (this.data('bindData.bean') === undefined) {
+                throw {message:'Please call binddata(data, [properties]) first!'};
+            }
+            //Set method flags
+            methodUpdate = (method == "update");
+            methodUnbind = (method == "unbind");
+            if (!methodUpdate && !methodUnbind) {
+                throw {message:'Unsupported method!'};
+            }
+        }
+        
         var _this = this;
         var defaultProperties = {
             bindAll: true,
             onlyGetOrSet: '',
-            transforms: []
+            transforms: [],
+            autoUnbind: true
         };
         $.extend(defaultProperties, properties);
         var data = getPropNamesAndValues(bean);
+        
+        if (this.data('bindData.bean') !== undefined && !methodUnbind && !defaultProperties.autoUnbind) {
+            throw {message:'Multiple data binding not supported. Please call binddata("unbind") first!'};
+        }
+        
+        //Store last used bean in container
+        if (typeof bean === "object") {
+            this.data('bindData.bean', bean);
+        }
+        this.data('bindData.properties', defaultProperties);
+        
+        //Remove bean and properties from container
+        if (methodUnbind) {
+            this.removeData('bindData.bean');
+            this.removeData('bindData.properties');
+        }
 
         switch (defaultProperties.onlyGetOrSet) {
             case 'set':
@@ -173,27 +212,55 @@
         }
 
         var elData = {bean: bean, transforms: defaultProperties.transforms};
-
+        
+        var bindHandler = function ($el) {
+            //Bind handler (doUpdate-flag omits binding if already bound)
+            if (!methodUpdate || (methodUpdate && $el.data('bindData.data') === undefined)) {
+                $el.data('bindData.data', elData);
+                $el.on('change', changeHandler);
+            }
+        };
+        var unbindHandler = function ($el) {
+            if ($el.data('bindData.data') !== undefined) {
+                    $el.removeData('bindData.data');
+                    $el.off('change', changeHandler);
+            }
+        };
+        
+        //Remove existing handlers before binding
+        if (defaultProperties.autoUnbind && !methodUpdate) {
+            var doUnbind = function(index, el) {
+                unbindHandler($(el));
+            };
+            this.find('input').each(doUnbind);
+            this.find('select').each(doUnbind);
+        }
+        
         if (defaultProperties.bindAll === false) {
             for (var prop in data) {
                 var $el = this.find('[name="'+prop+'"]');
-                $el.data('bindData.data', elData);
-                $el.on('change', changeHandler);
+                if (!methodUnbind) {
+                    bindHandler($el);
+                } else {
+                   unbindHandler($el);
+                }
             }
             setFormFields(this, data, elData.transforms);
         }
         else {
             var doBind = function(index, el) {
                 var $el = $(el);
-                var name = $el.attr('name');
-                $el.data('bindData.data', elData);
-                $el.on('change', changeHandler);
+                if (!methodUnbind) {
+                    bindHandler($el);
+                } else {
+                   unbindHandler($el);
+                }
             };
             this.find('input').each(doBind);
             this.find('select').each(doBind);
             setFormFields(this, data, elData.transforms);
         }
-
+        
         return this;
     };
 })(jQuery);
