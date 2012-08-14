@@ -153,6 +153,7 @@
         var method;
         var methodUpdate = false;
         var methodUnbind = false;
+        var isBound = (this.data('bindData.bean') !== undefined);
         
         if (null == bean) {
             return this;
@@ -165,7 +166,10 @@
             properties = this.data('bindData.properties');
         }
         if (method !== undefined) {
-            if (this.data('bindData.bean') === undefined) {
+            if (method == "isBound") {
+              return isBound;
+            }
+            if (!isBound) {
                 throw {message:'Please call binddata(data, [properties]) first!'};
             }
             //Set method flags
@@ -186,7 +190,7 @@
         $.extend(defaultProperties, properties);
         var data = getPropNamesAndValues(bean);
         
-        if (this.data('bindData.bean') !== undefined && !methodUnbind && !defaultProperties.autoUnbind) {
+        if (isBound && !methodUnbind && !defaultProperties.autoUnbind) {
             throw {message:'Multiple data binding not supported. Please call binddata("unbind") first!'};
         }
         

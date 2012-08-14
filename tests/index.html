@@ -85,9 +85,12 @@
                     $('[name="notYetExistent"]').val('505').trigger('change');
                     equal(data.notYetExistent, '505', 'expected data.notYetExistent to be bound to form');
                     
+                    equal($('form').binddata("isBound"), true, 'expected "isBound" to return true');
+                    
                     $('form').binddata('unbind');
                     $('[name="a1.a2"]').val('barfoo').trigger('change');
                     equal(data.a1.a2, 'a1.a2', 'expected data.a1.a2 to be unbound from form');
+                    equal($('form').binddata("isBound"), false, 'expected "isBound" to be return false');
                 });
             });
         </script>

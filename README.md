@@ -79,6 +79,7 @@ Methods
 Instead of passing a javascript object you can pass a string to call a method.
 * update - Installs handlers on fields created after binddata(data, [properties]) was called.
 * unbind - Unbinds all attached handlers from the container's fields
+* isBound - Returns true if container' fields have been bound to model data.
 
 Options
 -------
